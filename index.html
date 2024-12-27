@@ -3,78 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Video Player</title>
+    <title>Styled Shaka Player</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.2.1/shaka-player.compiled.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        #video-container {
+        /* General styling for the Shaka Player container */
+        .video-container {
             position: relative;
             width: 640px;
-            background: #000;
+            background-color: #000;
+            margin: 0 auto;
+            border: 2px solid #444;
+            border-radius: 8px;
+            overflow: hidden;
         }
+
+        /* Video element styling */
         video {
             width: 100%;
+            border-radius: 8px 8px 0 0;
         }
-        #controls {
+
+        /* Styling for the Shaka Player controls */
+        .shaka-controls-container {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
             padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
+            font-family: Arial, sans-serif;
+            border-radius: 0 0 8px 8px;
         }
-        #progress {
-            flex-grow: 1;
-            margin: 0 10px;
-        }
-        input[type="range"] {
-            width: 100%;
-        }
-        button {
+
+        .shaka-controls-container .shaka-play-button,
+        .shaka-controls-container .shaka-volume-button,
+        .shaka-controls-container .shaka-mute-button,
+        .shaka-controls-container .shaka-fullscreen-button {
             background: #444;
             color: #fff;
             border: none;
-            padding: 10px;
+            border-radius: 4px;
+            padding: 5px 10px;
             cursor: pointer;
+            margin: 0 5px;
+            transition: background 0.3s ease;
         }
-        button:hover {
+
+        .shaka-controls-container .shaka-play-button:hover,
+        .shaka-controls-container .shaka-volume-button:hover,
+        .shaka-controls-container .shaka-mute-button:hover,
+        .shaka-controls-container .shaka-fullscreen-button:hover {
             background: #666;
+        }
+
+        .shaka-controls-container .shaka-slider-container {
+            flex-grow: 1;
+            margin: 0 10px;
+        }
+
+        .shaka-controls-container .shaka-slider {
+            width: 100%;
+            height: 6px;
+            background: #333;
+            cursor: pointer;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .shaka-controls-container .shaka-slider .shaka-slider-thumb {
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            top: 50%;
+        }
+
+        /* Time labels styling */
+        .shaka-controls-container .shaka-time-label {
+            font-size: 12px;
+            margin: 0 5px;
+        }
+
+        /* Fullscreen button alignment */
+        .shaka-controls-container .shaka-fullscreen-button {
+            margin-left: auto;
+        }
+
+        /* Loading spinner styling */
+        .shaka-spinner-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        .shaka-spinner-container .shaka-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Custom DASH Video Player</h1>
-    <div id="video-container">
-        <video id="video"></video>
-        <div id="controls">
-            <button id="play-pause">Play</button>
-            <input type="range" id="progress" min="0" max="100" value="0">
-            <input type="range" id="volume" min="0" max="1" step="0.1" value="1">
-        </div>
+    <div class="video-container">
+        <video id="video" autoplay muted></video>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const video = document.getElementById('video');
-            const playPauseButton = document.getElementById('play-pause');
-            const progress = document.getElementById('progress');
-            const volume = document.getElementById('volume');
             const manifestUri = 'https://ottb.live.cf.ww.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/wf8usag51e/out/v1/bd3b0c314fff4bb1ab4693358f3cd2d3/cenc.mpd';
-
-            // ClearKey DRM configuration
-            const clearKeyConfig = {
-                'keys': {
-                    'ae26845bd33038a9c0774a0981007294': '63ac662dde310cfb4cc6f9b43b34196d'
-                }
-            };
 
             // Initialize Shaka Player
             const player = new shaka.Player(video);
@@ -84,45 +136,21 @@
                 console.error('Error code', event.detail.code, 'object', event.detail);
             });
 
-            try {
-                // Configure DRM
-                player.configure({
-                    drm: {
-                        clearKeys: clearKeyConfig.keys,
-                    },
-                });
+            // Enable default UI with custom styles
+            const ui = new shaka.ui.Overlay(player, document.body, video);
+            ui.configure({
+                addBigPlayButton: true,
+                controlPanelElements: [
+                    'play_pause', 'time_and_duration', 'spacer', 'mute', 'volume', 'fullscreen',
+                ],
+            });
 
-                // Load the manifest
+            try {
                 await player.load(manifestUri);
                 console.log('The video has successfully loaded!');
             } catch (error) {
                 console.error('Error loading video:', error);
             }
-
-            // Custom Controls
-            playPauseButton.addEventListener('click', () => {
-                if (video.paused) {
-                    video.play();
-                    playPauseButton.textContent = 'Pause';
-                } else {
-                    video.pause();
-                    playPauseButton.textContent = 'Play';
-                }
-            });
-
-            video.addEventListener('timeupdate', () => {
-                const percent = (video.currentTime / video.duration) * 100;
-                progress.value = percent || 0;
-            });
-
-            progress.addEventListener('input', () => {
-                const seekTime = (progress.value / 100) * video.duration;
-                video.currentTime = seekTime;
-            });
-
-            volume.addEventListener('input', () => {
-                video.volume = volume.value;
-            });
         });
     </script>
 </body>
