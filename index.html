@@ -123,10 +123,20 @@
         <video id="video" autoplay muted></video>
     </div>
 
-    <script>
+     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const video = document.getElementById('video');
+            const playPauseButton = document.getElementById('play-pause');
+            const progress = document.getElementById('progress');
+            const volume = document.getElementById('volume');
             const manifestUri = 'https://ottb.live.cf.ww.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/wf8usag51e/out/v1/bd3b0c314fff4bb1ab4693358f3cd2d3/cenc.mpd';
+
+            // ClearKey DRM configuration
+            const clearKeyConfig = {
+                'keys': {
+                    'ae26845bd33038a9c0774a0981007294': '63ac662dde310cfb4cc6f9b43b34196d'
+                }
+            };
 
             // Initialize Shaka Player
             const player = new shaka.Player(video);
@@ -136,21 +146,45 @@
                 console.error('Error code', event.detail.code, 'object', event.detail);
             });
 
-            // Enable default UI with custom styles
-            const ui = new shaka.ui.Overlay(player, document.body, video);
-            ui.configure({
-                addBigPlayButton: true,
-                controlPanelElements: [
-                    'play_pause', 'time_and_duration', 'spacer', 'mute', 'volume', 'fullscreen',
-                ],
-            });
-
             try {
+                // Configure DRM
+                player.configure({
+                    drm: {
+                        clearKeys: clearKeyConfig.keys,
+                    },
+                });
+
+                // Load the manifest
                 await player.load(manifestUri);
                 console.log('The video has successfully loaded!');
             } catch (error) {
                 console.error('Error loading video:', error);
             }
+
+            // Custom Controls
+            playPauseButton.addEventListener('click', () => {
+                if (video.paused) {
+                    video.play();
+                    playPauseButton.textContent = 'Pause';
+                } else {
+                    video.pause();
+                    playPauseButton.textContent = 'Play';
+                }
+            });
+
+            video.addEventListener('timeupdate', () => {
+                const percent = (video.currentTime / video.duration) * 100;
+                progress.value = percent || 0;
+            });
+
+            progress.addEventListener('input', () => {
+                const seekTime = (progress.value / 100) * video.duration;
+                video.currentTime = seekTime;
+            });
+
+            volume.addEventListener('input', () => {
+                video.volume = volume.value;
+            });
         });
     </script>
 </body>
