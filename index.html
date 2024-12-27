@@ -3,78 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Video Player</title>
+    <title>Shaka Player with Custom CSS</title>
+    <link rel="stylesheet" href="shaka-styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.2.1/shaka-player.compiled.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #222;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        #video-container {
-            position: relative;
-            width: 640px;
-            background: #000;
-        }
-        video {
-            width: 100%;
-        }
-        #controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
-        }
-        #progress {
-            flex-grow: 1;
-            margin: 0 10px;
-        }
-        input[type="range"] {
-            width: 100%;
-        }
-        button {
-            background: #444;
-            color: #fff;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #666;
-        }
-    </style>
 </head>
 <body>
-    <h1>Custom DASH Video Player</h1>
-    <div id="video-container">
-        <video id="video"></video>
-        <div id="controls">
-            <button id="play-pause">Play</button>
-            <input type="range" id="progress" min="0" max="100" value="0">
-            <input type="range" id="volume" min="0" max="1" step="0.1" value="1">
-        </div>
+    <div class="video-container">
+        <video id="video" autoplay muted></video>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const video = document.getElementById('video');
-            const playPauseButton = document.getElementById('play-pause');
-            const progress = document.getElementById('progress');
-            const volume = document.getElementById('volume');
             const manifestUri = 'https://ottb.live.cf.ww.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/wf8usag51e/out/v1/bd3b0c314fff4bb1ab4693358f3cd2d3/cenc.mpd';
-
-            // ClearKey DRM configuration
-            const clearKeyConfig = {
-                'keys': {
-                    'ae26845bd33038a9c0774a0981007294': '63ac662dde310cfb4cc6f9b43b34196d'
-                }
-            };
 
             // Initialize Shaka Player
             const player = new shaka.Player(video);
@@ -85,44 +26,11 @@
             });
 
             try {
-                // Configure DRM
-                player.configure({
-                    drm: {
-                        clearKeys: clearKeyConfig.keys,
-                    },
-                });
-
-                // Load the manifest
                 await player.load(manifestUri);
                 console.log('The video has successfully loaded!');
             } catch (error) {
                 console.error('Error loading video:', error);
             }
-
-            // Custom Controls
-            playPauseButton.addEventListener('click', () => {
-                if (video.paused) {
-                    video.play();
-                    playPauseButton.textContent = 'Pause';
-                } else {
-                    video.pause();
-                    playPauseButton.textContent = 'Play';
-                }
-            });
-
-            video.addEventListener('timeupdate', () => {
-                const percent = (video.currentTime / video.duration) * 100;
-                progress.value = percent || 0;
-            });
-
-            progress.addEventListener('input', () => {
-                const seekTime = (progress.value / 100) * video.duration;
-                video.currentTime = seekTime;
-            });
-
-            volume.addEventListener('input', () => {
-                video.volume = volume.value;
-            });
         });
     </script>
 </body>
