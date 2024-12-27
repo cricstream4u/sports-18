@@ -3,127 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Styled Shaka Player</title>
+    <title>Custom Shaka Player Controls</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.2.1/shaka-player.compiled.js"></script>
     <style>
-        /* General styling for the Shaka Player container */
+        /* General styling for the video player */
         .video-container {
-            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px auto;
             width: 640px;
             background-color: #000;
-            margin: 0 auto;
             border: 2px solid #444;
             border-radius: 8px;
             overflow: hidden;
         }
 
-        /* Video element styling */
         video {
             width: 100%;
-            border-radius: 8px 8px 0 0;
         }
 
-        /* Styling for the Shaka Player controls */
-        .shaka-controls-container {
+        .controls {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
             background-color: rgba(0, 0, 0, 0.8);
             color: #fff;
-            padding: 10px;
-            font-family: Arial, sans-serif;
-            border-radius: 0 0 8px 8px;
         }
 
-        .shaka-controls-container .shaka-play-button,
-        .shaka-controls-container .shaka-volume-button,
-        .shaka-controls-container .shaka-mute-button,
-        .shaka-controls-container .shaka-fullscreen-button {
+        .controls button,
+        .controls input[type="range"] {
             background: #444;
             color: #fff;
             border: none;
             border-radius: 4px;
             padding: 5px 10px;
             cursor: pointer;
-            margin: 0 5px;
-            transition: background 0.3s ease;
         }
 
-        .shaka-controls-container .shaka-play-button:hover,
-        .shaka-controls-container .shaka-volume-button:hover,
-        .shaka-controls-container .shaka-mute-button:hover,
-        .shaka-controls-container .shaka-fullscreen-button:hover {
+        .controls button:hover,
+        .controls input[type="range"]:hover {
             background: #666;
         }
 
-        .shaka-controls-container .shaka-slider-container {
-            flex-grow: 1;
-            margin: 0 10px;
-        }
-
-        .shaka-controls-container .shaka-slider {
-            width: 100%;
-            height: 6px;
-            background: #333;
-            cursor: pointer;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-
-        .shaka-controls-container .shaka-slider .shaka-slider-thumb {
-            width: 12px;
-            height: 12px;
-            background: #fff;
-            border-radius: 50%;
-            position: absolute;
-            transform: translate(-50%, -50%);
-            top: 50%;
-        }
-
-        /* Time labels styling */
-        .shaka-controls-container .shaka-time-label {
-            font-size: 12px;
-            margin: 0 5px;
-        }
-
-        /* Fullscreen button alignment */
-        .shaka-controls-container .shaka-fullscreen-button {
-            margin-left: auto;
-        }
-
-        /* Loading spinner styling */
-        .shaka-spinner-container {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-        }
-
-        .shaka-spinner-container .shaka-spinner {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid #fff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
+        .controls input[type="range"] {
+            width: 100px;
         }
     </style>
 </head>
 <body>
     <div class="video-container">
         <video id="video" autoplay muted></video>
+        <div class="controls">
+            <button id="play-pause">Play</button>
+            <input type="range" id="progress" min="0" max="100" value="0">
+            <input type="range" id="volume" min="0" max="1" step="0.1" value="1">
+        </div>
     </div>
 
-     <script>
+    <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const video = document.getElementById('video');
             const playPauseButton = document.getElementById('play-pause');
@@ -133,58 +73,62 @@
 
             // ClearKey DRM configuration
             const clearKeyConfig = {
-                'keys': {
-                    'ae26845bd33038a9c0774a0981007294': '63ac662dde310cfb4cc6f9b43b34196d'
-                }
+                'ae26845bd33038a9c0774a0981007294': '63ac662dde310cfb4cc6f9b43b34196d'
             };
 
             // Initialize Shaka Player
-            const player = new shaka.Player(video);
+            if (shaka.Player.isBrowserSupported()) {
+                console.log("Shaka Player is supported in this browser.");
+                const player = new shaka.Player(video);
 
-            // Error handling
-            player.addEventListener('error', (event) => {
-                console.error('Error code', event.detail.code, 'object', event.detail);
-            });
-
-            try {
-                // Configure DRM
-                player.configure({
-                    drm: {
-                        clearKeys: clearKeyConfig.keys,
-                    },
+                // Error handling
+                player.addEventListener('error', (event) => {
+                    console.error('Shaka Player Error:', event.detail);
                 });
 
-                // Load the manifest
-                await player.load(manifestUri);
-                console.log('The video has successfully loaded!');
-            } catch (error) {
-                console.error('Error loading video:', error);
-            }
+                try {
+                    // Configure DRM
+                    player.configure({
+                        drm: {
+                            clearKeys: clearKeyConfig,
+                        },
+                    });
 
-            // Custom Controls
-            playPauseButton.addEventListener('click', () => {
-                if (video.paused) {
-                    video.play();
-                    playPauseButton.textContent = 'Pause';
-                } else {
-                    video.pause();
-                    playPauseButton.textContent = 'Play';
+                    // Load the manifest
+                    await player.load(manifestUri);
+                    console.log('The video has successfully loaded!');
+                } catch (error) {
+                    console.error('Error loading video:', error);
                 }
-            });
 
-            video.addEventListener('timeupdate', () => {
-                const percent = (video.currentTime / video.duration) * 100;
-                progress.value = percent || 0;
-            });
+                // Custom Controls
+                playPauseButton.addEventListener('click', () => {
+                    if (video.paused) {
+                        video.play();
+                        playPauseButton.textContent = 'Pause';
+                    } else {
+                        video.pause();
+                        playPauseButton.textContent = 'Play';
+                    }
+                });
 
-            progress.addEventListener('input', () => {
-                const seekTime = (progress.value / 100) * video.duration;
-                video.currentTime = seekTime;
-            });
+                video.addEventListener('timeupdate', () => {
+                    const percent = (video.currentTime / video.duration) * 100;
+                    progress.value = percent || 0;
+                });
 
-            volume.addEventListener('input', () => {
-                video.volume = volume.value;
-            });
+                progress.addEventListener('input', () => {
+                    const seekTime = (progress.value / 100) * video.duration;
+                    video.currentTime = seekTime;
+                });
+
+                volume.addEventListener('input', () => {
+                    video.volume = volume.value;
+                });
+            } else {
+                console.error("Shaka Player is not supported in this browser.");
+                alert("Your browser does not support Shaka Player.");
+            }
         });
     </script>
 </body>
