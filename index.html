@@ -3,97 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Shaka Player Controls</title>
+    <title>Shaka Player with DRM Support</title>
+    <link rel="stylesheet" href="shaka-styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.2.1/shaka-player.compiled.js"></script>
-    <style>
-        /* General styling for the video player */
-        .video-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 20px auto;
-            width: 640px;
-            background-color: #000;
-            border: 2px solid #444;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        video {
-            width: 100%;
-        }
-
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: 10px;
-            background-color: rgba(0, 0, 0, 0.8);
-            color: #fff;
-        }
-
-        .controls button {
-            background: #444;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-
-        .controls button:hover {
-            background: #666;
-        }
-
-        .controls select {
-            background: #444;
-            color: #fff;
-            border: none;
-            border-radius: 4px;
-            padding: 5px;
-            cursor: pointer;
-        }
-
-        .controls select:hover {
-            background: #666;
-        }
-
-        .controls input[type="range"] {
-            display: none; /* Hide volume control */
-        }
-    </style>
 </head>
 <body>
     <div class="video-container">
         <video id="video" autoplay muted></video>
-        <div class="controls">
-            <button id="play-pause">Play</button>
-            <select id="quality-selector">
-                <option value="auto">Auto</option>
-            </select>
-            <button id="pip">PiP</button>
-            <button id="fullscreen">Fullscreen</button>
-        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const video = document.getElementById('video');
-            const playPauseButton = document.getElementById('play-pause');
-            const qualitySelector = document.getElementById('quality-selector');
-            const pipButton = document.getElementById('pip');
-            const fullscreenButton = document.getElementById('fullscreen');
             const manifestUri = 'https://ottb.live.cf.ww.aiv-cdn.net/lhr-nitro/live/clients/dash/enc/wf8usag51e/out/v1/bd3b0c314fff4bb1ab4693358f3cd2d3/cenc.mpd';
 
-            // ClearKey DRM configuration
+            // DRM ClearKey configuration
             const clearKeyConfig = {
                 'ae26845bd33038a9c0774a0981007294': '63ac662dde310cfb4cc6f9b43b34196d'
             };
 
             // Initialize Shaka Player
             if (shaka.Player.isBrowserSupported()) {
-                console.log("Shaka Player is supported in this browser.");
                 const player = new shaka.Player(video);
 
                 // Error handling
@@ -102,70 +32,19 @@
                 });
 
                 try {
-                    // Configure DRM
+                    // Configure DRM with ClearKey
                     player.configure({
                         drm: {
-                            clearKeys: clearKeyConfig,
-                        },
+                            clearKeys: clearKeyConfig
+                        }
                     });
 
                     // Load the manifest
                     await player.load(manifestUri);
-                    console.log('The video has successfully loaded!');
-
-                    // Populate quality options
-                    player.addEventListener('trackschanged', () => {
-                        qualitySelector.innerHTML = '<option value="auto">Auto</option>';
-                        const tracks = player.getVariantTracks();
-                        tracks.forEach(track => {
-                            const option = document.createElement('option');
-                            option.value = track.id;
-                            option.textContent = `${track.height}p`;
-                            qualitySelector.appendChild(option);
-                        });
-                    });
-
-                    qualitySelector.addEventListener('change', () => {
-                        if (qualitySelector.value === 'auto') {
-                            player.configure({ abr: { enabled: true } });
-                        } else {
-                            player.configure({ abr: { enabled: false } });
-                            const track = player.getVariantTracks().find(t => t.id == qualitySelector.value);
-                            if (track) player.selectVariantTrack(track, true);
-                        }
-                    });
+                    console.log('The video has successfully loaded with DRM support!');
                 } catch (error) {
                     console.error('Error loading video:', error);
                 }
-
-                // Custom Controls
-                playPauseButton.addEventListener('click', () => {
-                    if (video.paused) {
-                        video.play();
-                        playPauseButton.textContent = 'Pause';
-                    } else {
-                        video.pause();
-                        playPauseButton.textContent = 'Play';
-                    }
-                });
-
-                pipButton.addEventListener('click', async () => {
-                    if (document.pictureInPictureElement) {
-                        await document.exitPictureInPicture();
-                    } else if (video.requestPictureInPicture) {
-                        await video.requestPictureInPicture();
-                    } else {
-                        alert('Picture-in-Picture is not supported by your browser.');
-                    }
-                });
-
-                fullscreenButton.addEventListener('click', () => {
-                    if (!document.fullscreenElement) {
-                        video.requestFullscreen();
-                    } else {
-                        document.exitFullscreen();
-                    }
-                });
             } else {
                 console.error("Shaka Player is not supported in this browser.");
                 alert("Your browser does not support Shaka Player.");
