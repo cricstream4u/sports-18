@@ -88,10 +88,7 @@
           await player.load(manifestUri);
           console.log("The video has now been loaded!");
           document.getElementById('live-label').style.display = 'block';
-        } catch (error) {
-          console.error("Error loading video:", error);
-          alert("Failed to load the video. Please check the URL.");
-        }
+        } 
       }
 
       document.addEventListener('shaka-ui-loaded', init);
