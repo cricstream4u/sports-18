@@ -6,7 +6,7 @@
     <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
     <!-- Shaka Player UI compiled library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/shaka-player.ui.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.12/controls.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/controls.min.css">
     <style>
       #live-label {
         position: absolute;
@@ -56,60 +56,49 @@
     </div>
 
     <script>
-  async function init() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const manifestUri = urlParams.get('url');
+      async function init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const manifestUri = urlParams.get('url');
 
-    if (!manifestUri) {
-      alert("No video URL provided. Add ?url=YOUR_HLS_URL to the URL.");
-      return;
-    }
+        if (!manifestUri) {
+          alert("No video URL provided. Add ?url=YOUR_HLS_URL to the URL.");
+          return;
+        }
 
-    const video = document.getElementById('video');
-    const ui = video['ui'];
-    const controls = ui.getControls();
-    const player = controls.getPlayer();
+        const video = document.getElementById('video');
+        const ui = video['ui'];
+        const controls = ui.getControls();
+        const player = controls.getPlayer();
 
-    const config = {
-      'controlPanelElements': ['play_pause', 'spacer', 'mute', 'quality', 'picture_in_picture', 'fullscreen'],
-    };
+        const config = {
+          'controlPanelElements': ['play_pause', 'spacer', 'mute', 'quality', 'picture_in_picture', 'fullscreen'],
+        };
 
-    ui.configure(config);
+        ui.configure(config);
 
-    window.player = player;
-    window.ui = ui;
+        window.player = player;
+        window.ui = ui;
 
-    let isVideoLoaded = false; // Flag to track video loading status
+        player.addEventListener('error', (errorEvent) => {
+          console.error("Player Error:", errorEvent.detail);
+          alert("An error occurred while playing the video.");
+        });
 
-    // Timer to check if the video is loaded after 3 minutes
-    setTimeout(() => {
-      if (!isVideoLoaded) {
-        alert("Failed to load the video after 3 minutes. Please check the video URL or your connection.");
+        try {
+          await player.load(manifestUri);
+          console.log("The video has now been loaded!");
+          document.getElementById('live-label').style.display = 'block';
+        } catch (error) {
+          console.error("Error loading video:", error);
+          alert("Failed to load the video. Please check the URL.");
+        }
       }
-    }, 180000); // 3 minutes in milliseconds
 
-    player.addEventListener('error', (errorEvent) => {
-      console.error("Player Error:", errorEvent.detail);
-      alert("An error occurred while playing the video.");
-    });
-
-    try {
-      await player.load(manifestUri);
-      console.log("The video has now been loaded!");
-      document.getElementById('live-label').style.display = 'block';
-      isVideoLoaded = true; // Mark as loaded
-    } catch (error) {
-      console.error("Error loading video:", error);
-      alert("Failed to load the video. Please check the URL.");
-    }
-  }
-
-  document.addEventListener('shaka-ui-loaded', init);
-  document.addEventListener('shaka-ui-load-failed', () => {
-    console.error("Shaka Player UI library failed to load.");
-  });
-</script>
-
+      document.addEventListener('shaka-ui-loaded', init);
+      document.addEventListener('shaka-ui-load-failed', () => {
+        console.error("Shaka Player UI library failed to load.");
+      });
+    </script>
 
      <center>
             <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
