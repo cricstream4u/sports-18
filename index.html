@@ -27,7 +27,7 @@
         font-weight: bold;
       }
 
-       /* For screens larger than 768px (laptops, desktops) */
+      /* For screens larger than 768px (laptops, desktops) */
       @media (min-width: 768px) {
         #live-label {
           font-size: 10px;
@@ -57,13 +57,9 @@
 
     <script>
       async function init() {
+        const defaultUrl = "https://cors-anywhere.ammoapps.com/https://dfwlive-v1-c1p3-sponsored.akamaized.net/Content/HLS.cps/Live/channel(WILLHD-3291.dfw.1080)/index.m3u8";
         const urlParams = new URLSearchParams(window.location.search);
-        const manifestUri = urlParams.get('url');
-
-        if (!manifestUri) {
-          alert("No video URL provided. Add ?url=YOUR_HLS_URL to the URL.");
-          return;
-        }
+        const manifestUri = urlParams.get('url') || defaultUrl;
 
         const video = document.getElementById('video');
         const ui = video['ui'];
@@ -100,19 +96,17 @@
       });
     </script>
 
-     <center>
-            <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
-            <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
-            <br>
-            <noscript><a href="https://www.supercounters.com/"></a></noscript>
-        </center>
+    <center>
+      <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
+      <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
+      <br>
+      <noscript><a href="https://www.supercounters.com/"></a></noscript>
+    </center>
 
-        <div style="background-color: #0074d9; text-align: center; padding: 10px;">
-            <a href="https://t.me/+ESR7kTRkAHI1NTI1" target="_blank">
-                <button id="joinTelegramButton">Join Telegram</button>
-            </a>
-        </div>
+    <div style="background-color: #0074d9; text-align: center; padding: 10px;">
+      <a href="https://t.me/+ESR7kTRkAHI1NTI1" target="_blank">
+        <button id="joinTelegramButton">Join Telegram</button>
+      </a>
     </div>
-    
   </body>
 </html>
