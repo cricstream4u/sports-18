@@ -1,105 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HLS Player - TG @cric_stream</title>
-  <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/shaka-player.ui.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/controls.min.css">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: black; /* Set the entire page background color to black */
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
+    <title>TG- @cric_stream</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <style>
+        .video-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0 auto;
+            margin-top: 5px;
+            text-align: center;
+        }
 
-    #video-container {
-      background-color: black; /* Set the video container background color to black */
-      max-width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+        video {
+            width: 100%;
+            height: auto;
+        }
 
-    #live-label {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 10px;
-      color: white;
-      background-color: rgba(0, 0, 0, 0.2);
-      padding: 4px 8px;
-      border-radius: 10px;
-      display: none;
-      z-index: 10;
-    }
-
-    #live-label a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-    }
-  </style>
+        @media (orientation: landscape) and (fullscreen) {
+            video {
+                width: 100vw;
+                height: 100vh;
+                object-fit: contain;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div id="video-container" data-shaka-player-container>
-    <video autoplay data-shaka-player id="video" style="width:100%;height:100%" poster="CRIC stream Thumbnail.jpg"></video>
-    <div id="live-label">
-      <center><a href="https://t.me/cric_stream">CRIC <br> STREAM</a></center>
+
+    <div class="video-container">
+        <video id="video-player" controls crossorigin playsinline></video>
     </div>
-  </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const defaultVideoUrl = "https://dai.fancode.com/primary/115956_english_hls_5485ta-di/index.m3u8";
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoUrl = urlParams.get('video') || defaultVideoUrl;
 
-  <script>
-    async function init() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const manifestUri = urlParams.get('url');
+            const videoElement = document.getElementById('video-player');
 
-      if (!manifestUri) {
-        alert("No video URL provided. Add ?url=YOUR_HLS_URL to the URL.");
-        return;
-      }
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoUrl);
+                hls.attachMedia(videoElement);
 
-      const video = document.getElementById('video');
-      const ui = video['ui'];
-      const controls = ui.getControls();
-      const player = controls.getPlayer();
+                const player = new Plyr(videoElement, {
+                    controls: [
+                        'play-large',
+                        'play',
+                        'progress',
+                        'current-time',
+                        'mute',
+                        'settings',
+                        'pip',
+                        'fullscreen',
+                    ],
+                    settings: ['quality'],
+                });
 
-      const config = {
-        controlPanelElements: ['play_pause', 'spacer', 'mute', 'quality', 'fullscreen'],
-        streaming: {
-          bufferingGoal: 30,
-          retryParameters: {
-            maxAttempts: 5,
-            baseDelay: 1000,
-            backoffFactor: 2,
-          },
-        },
-      };
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    const availableQualities = hls.levels.map(level => level.height);
+                    player.config.quality = {
+                        default: 0,
+                        options: [0, ...availableQualities],
+                        forced: true,
+                        onChange: (newQuality) => updateQuality(hls, newQuality),
+                    };
+                });
 
-      ui.configure(config);
-      window.player = player;
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        console.error('Fatal error encountered:', data);
+                    }
+                });
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                videoElement.src = videoUrl;
+                const player = new Plyr(videoElement, {
+                    controls: [
+                        'play-large',
+                        'play',
+                        'progress',
+                        'current-time',
+                        'mute',
+                        'volume',
+                        'settings',
+                        'pip',
+                        'fullscreen',
+                    ],
+                    settings: ['quality'],
+                });
+            } else {
+                console.warn("Your browser does not support HLS playback.");
+            }
+        });
 
-      player.addEventListener('error', (errorEvent) => {
-        console.error("Player Error:", errorEvent.detail);
-        alert(`Error Code: ${errorEvent.detail.code}`);
-      });
+        function updateQuality(hls, newQuality) {
+            if (newQuality === 0) {
+                hls.currentLevel = -1;
+            } else {
+                hls.levels.forEach((level, index) => {
+                    if (level.height === newQuality) {
+                        hls.currentLevel = index;
+                    }
+                });
+            }
+        }
 
-      try {
-        await player.load(manifestUri);
-        console.log("The video has now been loaded!");
-        document.getElementById('live-label').style.display = 'block';
-      } catch (error) {
-        console.error("Error loading video:", error);
-        alert("Failed to load the video. Ensure the URL is accessible.");
-      }
-    }
-
-    document.addEventListener('shaka-ui-loaded', init);
-    document.addEventListener('shaka-ui-load-failed', () => {
-      console.error("Shaka Player UI library failed to load.");
-      alert("Failed to initialize the video player.");
-    });
-  </script>
+        // Enforce landscape mode in fullscreen
+        const videoElement = document.getElementById('video-player');
+        videoElement.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                if (screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch((err) => console.warn('Orientation lock failed:', err));
+                }
+            }
+        });
+    </script>
+    
+    <!-- Counter and Telegram Button -->
+    <center>
+        <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
+        <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
+        <noscript><a href="https://www.supercounters.com/"></a></noscript>
+    </center>
+    <div style="background-color: #0074d9; text-align: center; padding: 10px;">
+        <a href="https://t.me/cric_stream" target="_blank">
+            <button id="joinTelegramButton">Join Telegram</button>
+        </a>
+    </div>
+   
 </body>
 </html>
