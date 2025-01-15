@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HLS Player with Multiple Quality Options</title>
+    <title>HLS Player with Debugging</title>
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
@@ -37,17 +37,16 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
-            const videoUrl = "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8"; // Your HLS link
+            const videoUrl = "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8";
             const videoElement = document.getElementById("player");
 
-            // Initialize Hls.js if supported
             if (Hls.isSupported()) {
-                const hls = new Hls();
+                const hls = new Hls({ debug: true });
 
+                // Optional: Add custom headers or handle tokens
                 hls.loadSource(videoUrl);
                 hls.attachMedia(videoElement);
 
-                // Listen for HLS.js events
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     const player = new Plyr(videoElement, {
                         controls: [
@@ -59,33 +58,19 @@
                             'volume',
                             'settings',
                             'fullscreen'
-                        ],
-                        settings: ['quality']
+                        ]
                     });
 
-                    const availableQualities = hls.levels.map(level => level.height);
-
-                    // Set quality options
-                    player.config.quality = {
-                        default: 0, // Auto quality
-                        options: [0, ...availableQualities], // 0 represents auto quality
-                        onChange: (newQuality) => {
-                            if (newQuality === 0) {
-                                hls.currentLevel = -1; // Auto quality
-                            } else {
-                                const levelIndex = hls.levels.findIndex(level => level.height === newQuality);
-                                hls.currentLevel = levelIndex;
-                            }
-                        },
-                    };
+                    console.log("HLS manifest loaded successfully");
                 });
 
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     console.error("HLS.js error:", data);
                 });
             } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                // For Safari or native HLS support
+                // Native HLS support (e.g., Safari)
                 videoElement.src = videoUrl;
+
                 new Plyr(videoElement, {
                     controls: [
                         'play-large',
@@ -98,8 +83,10 @@
                         'fullscreen'
                     ]
                 });
+
+                console.log("Native HLS supported and playing");
             } else {
-                console.error("HLS not supported on this browser");
+                console.error("HLS is not supported in this browser");
             }
         });
     </script>
