@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" type="image/x-icon" href="Cric_stream_Favicon.jpg">
     <title>TG- @cric_stream</title>
-    <!-- HLS and DASH Player with Plyr -->
+    <!-- HLS Player with Plyr -->
     <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
@@ -53,10 +53,9 @@
     <div class="content">
         <script>
             document.addEventListener("DOMContentLoaded", () => {
-                // Check for video URL in query params, fallback to default
-                const urlParams = new URLSearchParams(window.location.search);
-                const videoUrl = urlParams.get('video') || "https://example.com/path/to/default/index.m3u8"; // Replace default link
-                
+                // Hard-coded .m3u8 link for testing
+                const videoUrl = "https://dai.fancode.com/primary/115957_english_hls_5625adfreeta-di/index.m3u8";
+
                 const video = document.getElementById('video');
                 const defaultOptions = {
                     controls: [
@@ -74,18 +73,21 @@
                     settings: ['quality'],
                 };
 
+                // Timeout for error message
                 const errorMessageTimeout = setTimeout(() => {
                     document.body.innerHTML = "<h2>There was an issue loading the stream. Please try again later.</h2>";
                 }, 120000);
 
-                // Handle HLS playback
+                // Check and play HLS stream
                 if (videoUrl.endsWith('.m3u8')) {
                     if (Hls.isSupported()) {
                         const hls = new Hls();
+                        console.log("HLS.js is supported. Loading source:", videoUrl);
                         hls.loadSource(videoUrl);
                         hls.attachMedia(video);
 
                         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                            console.log("HLS Manifest loaded.");
                             const availableQualities = hls.levels.map(level => level.height);
 
                             defaultOptions.quality = {
@@ -100,26 +102,48 @@
                         });
 
                         hls.on(Hls.Events.ERROR, (event, data) => {
-                            console.error('HLS.js Error:', data);
+                            console.error("HLS.js Error:", data);
+                            if (data.fatal) {
+                                switch (data.type) {
+                                    case Hls.ErrorTypes.NETWORK_ERROR:
+                                        console.error("Fatal network error encountered. Trying to recover...");
+                                        hls.startLoad();
+                                        break;
+                                    case Hls.ErrorTypes.MEDIA_ERROR:
+                                        console.error("Fatal media error encountered. Trying to recover...");
+                                        hls.recoverMediaError();
+                                        break;
+                                    default:
+                                        console.error("Unrecoverable error encountered.");
+                                        hls.destroy();
+                                        document.body.innerHTML = "<h2>Cannot load the video stream.</h2>";
+                                        break;
+                                }
+                            }
                         });
                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        console.log("Native HLS support detected. Setting video source:", videoUrl);
                         video.src = videoUrl;
                         const player = new Plyr(video, defaultOptions);
                         video.onplaying = () => clearTimeout(errorMessageTimeout);
                     } else {
-                        document.body.innerHTML = "<h2>HLS not supported on your browser</h2>";
+                        console.error("HLS is not supported on this browser.");
+                        document.body.innerHTML = "<h2>HLS not supported on your browser.</h2>";
                     }
                 } else {
+                    console.error("Invalid video URL. Not an .m3u8 file:", videoUrl);
                     document.body.innerHTML = "<h2>Unsupported video format</h2>";
                 }
 
                 function updateQuality(hls, newQuality) {
                     if (newQuality === 0) {
                         hls.currentLevel = -1; // Auto quality
+                        console.log("Switched to auto quality.");
                     } else {
                         hls.levels.forEach((level, index) => {
                             if (level.height === newQuality) {
                                 hls.currentLevel = index;
+                                console.log(`Switched to quality: ${newQuality}p`);
                             }
                         });
                     }
