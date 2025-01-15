@@ -3,166 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" type="image/x-icon" href="Cric_stream_Favicon.jpg">
-    <title>TG- @cric_stream</title>
-    <!-- HLS Player with Plyr -->
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <title>HLS Player with Multiple Quality Options</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <style>
         body {
             margin: 0;
-            padding: 5px;
             font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
         }
 
         .video-container {
             width: 100%;
-            background-color: white;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
         }
 
         video {
             width: 100%;
             height: auto;
         }
-
-        .content {
-            padding: 0;
-            background-color: white;
-        }
-
-        #joinTelegramButton {
-            background-color: #fff;
-            color: #0074d9;
-            border: 2px solid #0074d9;
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-
-        #joinTelegramButton:hover {
-            background-color: #0074d9;
-            color: #fff;
-        }
     </style>
 </head>
 <body>
     <div class="video-container">
-        <video preload="none" id="video" autoplay controls crossorigin poster="CRIC_stream_Thumbnail.jpg"></video>
+        <video id="player" controls crossorigin="anonymous" playsinline></video>
     </div>
 
-    <div class="content">
-        <script>
-            document.addEventListener("DOMContentLoaded", () => {
-                // Hard-coded .m3u8 link for testing
-                const videoUrl = "https://dai.fancode.com/primary/115957_english_hls_5625adfreeta-di/index.m3u8";
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const videoUrl = "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8"; // Your HLS link
+            const videoElement = document.getElementById("player");
 
-                const video = document.getElementById('video');
-                const defaultOptions = {
+            // Initialize Hls.js if supported
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+
+                hls.loadSource(videoUrl);
+                hls.attachMedia(videoElement);
+
+                // Listen for HLS.js events
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    const player = new Plyr(videoElement, {
+                        controls: [
+                            'play-large',
+                            'play',
+                            'progress',
+                            'current-time',
+                            'mute',
+                            'volume',
+                            'settings',
+                            'fullscreen'
+                        ],
+                        settings: ['quality']
+                    });
+
+                    const availableQualities = hls.levels.map(level => level.height);
+
+                    // Set quality options
+                    player.config.quality = {
+                        default: 0, // Auto quality
+                        options: [0, ...availableQualities], // 0 represents auto quality
+                        onChange: (newQuality) => {
+                            if (newQuality === 0) {
+                                hls.currentLevel = -1; // Auto quality
+                            } else {
+                                const levelIndex = hls.levels.findIndex(level => level.height === newQuality);
+                                hls.currentLevel = levelIndex;
+                            }
+                        },
+                    };
+                });
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    console.error("HLS.js error:", data);
+                });
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                // For Safari or native HLS support
+                videoElement.src = videoUrl;
+                new Plyr(videoElement, {
                     controls: [
                         'play-large',
                         'play',
                         'progress',
-                        'duration',
-                        'live',
+                        'current-time',
                         'mute',
+                        'volume',
                         'settings',
-                        'pip',
-                        'airplay',
-                        'fullscreen',
-                    ],
-                    settings: ['quality'],
-                };
-
-                // Timeout for error message
-                const errorMessageTimeout = setTimeout(() => {
-                    document.body.innerHTML = "<h2>There was an issue loading the stream. Please try again later.</h2>";
-                }, 120000);
-
-                // Check and play HLS stream
-                if (videoUrl.endsWith('.m3u8')) {
-                    if (Hls.isSupported()) {
-                        const hls = new Hls();
-                        console.log("HLS.js is supported. Loading source:", videoUrl);
-                        hls.loadSource(videoUrl);
-                        hls.attachMedia(video);
-
-                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                            console.log("HLS Manifest loaded.");
-                            const availableQualities = hls.levels.map(level => level.height);
-
-                            defaultOptions.quality = {
-                                default: 0,
-                                options: availableQualities,
-                                forced: true,
-                                onChange: (newQuality) => updateQuality(hls, newQuality),
-                            };
-
-                            const player = new Plyr(video, defaultOptions);
-                            clearTimeout(errorMessageTimeout);
-                        });
-
-                        hls.on(Hls.Events.ERROR, (event, data) => {
-                            console.error("HLS.js Error:", data);
-                            if (data.fatal) {
-                                switch (data.type) {
-                                    case Hls.ErrorTypes.NETWORK_ERROR:
-                                        console.error("Fatal network error encountered. Trying to recover...");
-                                        hls.startLoad();
-                                        break;
-                                    case Hls.ErrorTypes.MEDIA_ERROR:
-                                        console.error("Fatal media error encountered. Trying to recover...");
-                                        hls.recoverMediaError();
-                                        break;
-                                    default:
-                                        console.error("Unrecoverable error encountered.");
-                                        hls.destroy();
-                                        document.body.innerHTML = "<h2>Cannot load the video stream.</h2>";
-                                        break;
-                                }
-                            }
-                        });
-                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                        console.log("Native HLS support detected. Setting video source:", videoUrl);
-                        video.src = videoUrl;
-                        const player = new Plyr(video, defaultOptions);
-                        video.onplaying = () => clearTimeout(errorMessageTimeout);
-                    } else {
-                        console.error("HLS is not supported on this browser.");
-                        document.body.innerHTML = "<h2>HLS not supported on your browser.</h2>";
-                    }
-                } else {
-                    console.error("Invalid video URL. Not an .m3u8 file:", videoUrl);
-                    document.body.innerHTML = "<h2>Unsupported video format</h2>";
-                }
-
-                function updateQuality(hls, newQuality) {
-                    if (newQuality === 0) {
-                        hls.currentLevel = -1; // Auto quality
-                        console.log("Switched to auto quality.");
-                    } else {
-                        hls.levels.forEach((level, index) => {
-                            if (level.height === newQuality) {
-                                hls.currentLevel = index;
-                                console.log(`Switched to quality: ${newQuality}p`);
-                            }
-                        });
-                    }
-                }
-            });
-        </script>
-
-        <center>
-            <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
-            <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
-            <br>
-            <noscript><a href="https://www.supercounters.com/"></a></noscript>
-        </center>
-
-        <div style="background-color: #0074d9; text-align: center; padding: 10px;">
-            <a href="https://t.me/cric_stream" target="_blank">
-                <button id="joinTelegramButton">Join Telegram</button>
-            </a>
-        </div>
-    </div>
+                        'fullscreen'
+                    ]
+                });
+            } else {
+                console.error("HLS not supported on this browser");
+            }
+        });
+    </script>
 </body>
 </html>
