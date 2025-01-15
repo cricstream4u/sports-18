@@ -1,106 +1,74 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG @cric_stream</title>
-    <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/shaka-player.ui.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/controls.min.css">
-    <style>
-      body {
-        margin: 0;
-        background-color: black;
-      }
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Player - TG @cric_stream</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    video {
+      width: 100%;
+      max-width: 800px;
+      height: auto;
+      background-color: black;
+    }
+    #error-message {
+      color: white;
+      text-align: center;
+      font-size: 1.2rem;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <video id="video" controls autoplay></video>
+    <div id="error-message" style="display: none;">Failed to load the video. Please check the stream URL or try again later.</div>
+  </div>
+  
+  <script>
+    (function () {
+      const video = document.getElementById('video');
+      const errorMessage = document.getElementById('error-message');
+      const streamUrl = "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8"; // Replace with your stream URL
 
-      #live-label {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        background-color: rgba(0, 0, 0, 0.5);
-        padding: 5px 10px;
-        border-radius: 10px;
-        display: none;
-        z-index: 10;
-      }
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(streamUrl);
+        hls.attachMedia(video);
 
-      #live-label a {
-        color: white;
-        text-decoration: none;
-      }
-    </style>
-  </head>
-  <body>
-    <div data-shaka-player-container style="width: 100%; max-height: 100%;">
-      <video
-        autoplay
-        data-shaka-player
-        id="video"
-        style="width: 100%; height: 100%; background-color: black;"
-      ></video>
-      <div id="live-label">
-        <a href="https://t.me/cric_stream">LIVE: CRIC STREAM</a>
-      </div>
-    </div>
-
-    <script>
-      async function init() {
-        const defaultUrl =
-          "https://cors-anywhere.herokuapp.com/https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8";
-        const urlParams = new URLSearchParams(window.location.search);
-        const manifestUri = urlParams.get("url") || defaultUrl;
-
-        console.log("Loading URL:", manifestUri);
-
-        const video = document.getElementById("video");
-        const ui = video["ui"];
-        const controls = ui.getControls();
-        const player = controls.getPlayer();
-
-        const config = {
-          controlPanelElements: [
-            "play_pause",
-            "spacer",
-            "mute",
-            "volume",
-            "quality",
-            "fullscreen",
-          ],
-        };
-
-        ui.configure(config);
-
-        player.configure({
-          streaming: {
-            bufferingGoal: 30,
-            retryParameters: {
-              maxAttempts: 5,
-              baseDelay: 1000,
-              backoffFactor: 2,
-            },
-            useNativeHlsOnSafari: true,
-          },
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log('Stream loaded successfully.');
         });
 
-        player.addEventListener("error", (errorEvent) => {
-          console.error("Player Error:", errorEvent.detail);
-          alert("Playback Error! Check the console for details.");
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('HLS.js Error:', data);
+          if (data.fatal) {
+            errorMessage.style.display = 'block';
+          }
         });
-
-        try {
-          await player.load(manifestUri);
-          console.log("Stream loaded successfully!");
-          document.getElementById("live-label").style.display = "block";
-        } catch (error) {
-          console.error("Error loading stream:", error);
-          alert("Failed to load the stream. Ensure the URL is accessible.");
-        }
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = streamUrl;
+        video.addEventListener('loadedmetadata', () => {
+          console.log('Stream loaded using native HLS.');
+        });
+        video.addEventListener('error', () => {
+          console.error('Native HLS playback error.');
+          errorMessage.style.display = 'block';
+        });
+      } else {
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = 'Your browser does not support HLS playback.';
       }
-
-      document.addEventListener("shaka-ui-loaded", init);
-      document.addEventListener("shaka-ui-load-failed", () => {
-        console.error("Shaka Player UI library failed to load.");
-      });
-    </script>
-  </body>
+    })();
+  </script>
+</body>
 </html>
