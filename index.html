@@ -4,18 +4,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TG @cric_stream</title>
     <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
-    <!-- Shaka Player UI compiled library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/shaka-player.ui.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/controls.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/controls.min.css">
     <style>
+      body {
+        margin: 0;
+        background-color: black;
+      }
+
       #live-label {
         position: absolute;
         top: 10px;
         left: 10px;
-        font-size: 10px;
         color: white;
         background-color: rgba(0, 0, 0, 0.5);
-        padding: 4px 8px;
+        padding: 5px 10px;
         border-radius: 10px;
         display: none;
         z-index: 10;
@@ -24,47 +27,36 @@
       #live-label a {
         color: white;
         text-decoration: none;
-        font-weight: bold;
-      }
-
-      body {
-        margin: 0;
-        background-color: black;
       }
     </style>
   </head>
   <body>
-    <div data-shaka-player-container style="max-width: 100%;">
+    <div data-shaka-player-container style="width: 100%; max-height: 100%;">
       <video
         autoplay
         data-shaka-player
         id="video"
         style="width: 100%; height: 100%; background-color: black;"
-        poster="Cric stream Thumbnail.jpg"
       ></video>
       <div id="live-label">
-        <center>
-          <a href="https://t.me/cric_stream">CRIC <br />STREAM</a>
-        </center>
+        <a href="https://t.me/cric_stream">LIVE: CRIC STREAM</a>
       </div>
     </div>
 
     <script>
       async function init() {
-        // Default URL or URL from query params
         const defaultUrl =
-          "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8";
+          "https://cors-anywhere.herokuapp.com/https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8";
         const urlParams = new URLSearchParams(window.location.search);
         const manifestUri = urlParams.get("url") || defaultUrl;
 
-        console.log("Attempting to load URL:", manifestUri);
+        console.log("Loading URL:", manifestUri);
 
         const video = document.getElementById("video");
         const ui = video["ui"];
         const controls = ui.getControls();
         const player = controls.getPlayer();
 
-        // Shaka Player UI configuration
         const config = {
           controlPanelElements: [
             "play_pause",
@@ -78,37 +70,30 @@
 
         ui.configure(config);
 
-        // Player configuration for HLS
         player.configure({
           streaming: {
-            useNativeHlsOnSafari: false, // Disable native HLS handling for Safari
-            bufferingGoal: 30, // Buffering in seconds
-          },
-          abr: {
-            enabled: true, // Adaptive Bitrate (ABR) enabled
-            restrictions: {
-              minBandwidth: 0,
-              maxBandwidth: Infinity,
+            bufferingGoal: 30,
+            retryParameters: {
+              maxAttempts: 5,
+              baseDelay: 1000,
+              backoffFactor: 2,
             },
+            useNativeHlsOnSafari: true,
           },
         });
 
         player.addEventListener("error", (errorEvent) => {
           console.error("Player Error:", errorEvent.detail);
-          alert(
-            "An error occurred while playing the video. Check the console for details."
-          );
+          alert("Playback Error! Check the console for details.");
         });
 
         try {
-          await player.load(manifestUri); // Load the HLS manifest
-          console.log("The video has now been loaded!");
-          document.getElementById("live-label").style.display = "block"; // Show the label
+          await player.load(manifestUri);
+          console.log("Stream loaded successfully!");
+          document.getElementById("live-label").style.display = "block";
         } catch (error) {
-          console.error("Error loading video:", error);
-          alert(
-            "Failed to load the video. Ensure the link is correct and accessible."
-          );
+          console.error("Error loading stream:", error);
+          alert("Failed to load the stream. Ensure the URL is accessible.");
         }
       }
 
