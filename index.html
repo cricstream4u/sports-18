@@ -3,18 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
+    <link rel="shortcut icon" type="image/x-icon" href="Cric_stream_Favicon.jpg">
     <title>TG- @cric_stream</title>
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+    <!-- HLS and DASH Player with Plyr -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
     <style>
+        body {
+            margin: 0;
+            padding: 5px;
+            font-family: Arial, sans-serif;
+        }
+
         .video-container {
             width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
-            margin-top: 5px;
-            text-align: center;
+            background-color: white;
         }
 
         video {
@@ -22,118 +26,119 @@
             height: auto;
         }
 
-        @media (orientation: landscape) and (fullscreen) {
-            video {
-                width: 100vw;
-                height: 100vh;
-                object-fit: contain;
-            }
+        .content {
+            padding: 0;
+            background-color: white;
+        }
+
+        #joinTelegramButton {
+            background-color: #fff;
+            color: #0074d9;
+            border: 2px solid #0074d9;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        #joinTelegramButton:hover {
+            background-color: #0074d9;
+            color: #fff;
         }
     </style>
 </head>
 <body>
-
     <div class="video-container">
-        <video id="video-player" controls crossorigin playsinline></video>
+        <video preload="none" id="video" autoplay controls crossorigin poster="CRIC_stream_Thumbnail.jpg"></video>
     </div>
-    
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const defaultVideoUrl = "https://dai.fancode.com/primary/115956_english_hls_5485ta-di/index.m3u8";
-            const urlParams = new URLSearchParams(window.location.search);
-            const videoUrl = urlParams.get('video') || defaultVideoUrl;
 
-            const videoElement = document.getElementById('video-player');
-
-            if (Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(videoUrl);
-                hls.attachMedia(videoElement);
-
-                const player = new Plyr(videoElement, {
+    <div class="content">
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                // Check for video URL in query params, fallback to default
+                const urlParams = new URLSearchParams(window.location.search);
+                const videoUrl = urlParams.get('video') || "https://example.com/path/to/default/index.m3u8"; // Replace default link
+                
+                const video = document.getElementById('video');
+                const defaultOptions = {
                     controls: [
                         'play-large',
                         'play',
                         'progress',
-                        'current-time',
+                        'duration',
+                        'live',
                         'mute',
                         'settings',
                         'pip',
+                        'airplay',
                         'fullscreen',
                     ],
                     settings: ['quality'],
-                });
+                };
 
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    const availableQualities = hls.levels.map(level => level.height);
-                    player.config.quality = {
-                        default: 0,
-                        options: [0, ...availableQualities],
-                        forced: true,
-                        onChange: (newQuality) => updateQuality(hls, newQuality),
-                    };
-                });
+                const errorMessageTimeout = setTimeout(() => {
+                    document.body.innerHTML = "<h2>There was an issue loading the stream. Please try again later.</h2>";
+                }, 120000);
 
-                hls.on(Hls.Events.ERROR, (event, data) => {
-                    if (data.fatal) {
-                        console.error('Fatal error encountered:', data);
+                // Handle HLS playback
+                if (videoUrl.endsWith('.m3u8')) {
+                    if (Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(videoUrl);
+                        hls.attachMedia(video);
+
+                        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                            const availableQualities = hls.levels.map(level => level.height);
+
+                            defaultOptions.quality = {
+                                default: 0,
+                                options: availableQualities,
+                                forced: true,
+                                onChange: (newQuality) => updateQuality(hls, newQuality),
+                            };
+
+                            const player = new Plyr(video, defaultOptions);
+                            clearTimeout(errorMessageTimeout);
+                        });
+
+                        hls.on(Hls.Events.ERROR, (event, data) => {
+                            console.error('HLS.js Error:', data);
+                        });
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = videoUrl;
+                        const player = new Plyr(video, defaultOptions);
+                        video.onplaying = () => clearTimeout(errorMessageTimeout);
+                    } else {
+                        document.body.innerHTML = "<h2>HLS not supported on your browser</h2>";
                     }
-                });
-            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                videoElement.src = videoUrl;
-                const player = new Plyr(videoElement, {
-                    controls: [
-                        'play-large',
-                        'play',
-                        'progress',
-                        'current-time',
-                        'mute',
-                        'volume',
-                        'settings',
-                        'pip',
-                        'fullscreen',
-                    ],
-                    settings: ['quality'],
-                });
-            } else {
-                console.warn("Your browser does not support HLS playback.");
-            }
-        });
-
-        function updateQuality(hls, newQuality) {
-            if (newQuality === 0) {
-                hls.currentLevel = -1;
-            } else {
-                hls.levels.forEach((level, index) => {
-                    if (level.height === newQuality) {
-                        hls.currentLevel = index;
-                    }
-                });
-            }
-        }
-
-        // Enforce landscape mode in fullscreen
-        const videoElement = document.getElementById('video-player');
-        videoElement.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                if (screen.orientation.lock) {
-                    screen.orientation.lock('landscape').catch((err) => console.warn('Orientation lock failed:', err));
+                } else {
+                    document.body.innerHTML = "<h2>Unsupported video format</h2>";
                 }
-            }
-        });
-    </script>
-    
-    <!-- Counter and Telegram Button -->
-    <center>
-        <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
-        <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
-        <noscript><a href="https://www.supercounters.com/"></a></noscript>
-    </center>
-    <div style="background-color: #0074d9; text-align: center; padding: 10px;">
-        <a href="https://t.me/cric_stream" target="_blank">
-            <button id="joinTelegramButton">Join Telegram</button>
-        </a>
+
+                function updateQuality(hls, newQuality) {
+                    if (newQuality === 0) {
+                        hls.currentLevel = -1; // Auto quality
+                    } else {
+                        hls.levels.forEach((level, index) => {
+                            if (level.height === newQuality) {
+                                hls.currentLevel = index;
+                            }
+                        });
+                    }
+                }
+            });
+        </script>
+
+        <center>
+            <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
+            <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
+            <br>
+            <noscript><a href="https://www.supercounters.com/"></a></noscript>
+        </center>
+
+        <div style="background-color: #0074d9; text-align: center; padding: 10px;">
+            <a href="https://t.me/cric_stream" target="_blank">
+                <button id="joinTelegramButton">Join Telegram</button>
+            </a>
+        </div>
     </div>
-   
 </body>
 </html>
