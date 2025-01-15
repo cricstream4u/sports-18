@@ -1,94 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+<html>
+  <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HLS Player with Debugging</title>
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <title>TG @cric_stream</title>
+    <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
+    <!-- Shaka Player UI compiled library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/shaka-player.ui.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.12.5/controls.min.css">
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f9f9f9;
-        }
+      #live-label {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 10px;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 4px 8px;
+        border-radius: 10px;
+        display: none;
+        z-index: 10;
+      }
 
-        .video-container {
-            width: 100%;
-            max-width: 900px;
-            margin: 50px auto;
-            padding: 10px;
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-        }
+      #live-label a {
+        color: white;
+        text-decoration: none;
+        font-weight: bold;
+      }
 
-        video {
-            width: 100%;
-            height: auto;
-        }
+      body {
+        margin: 0;
+        background-color: black;
+      }
     </style>
-</head>
-<body>
-    <div class="video-container">
-        <video id="player" controls crossorigin="anonymous" playsinline></video>
+  </head>
+  <body>
+    <div data-shaka-player-container style="max-width: 100%;">
+      <video
+        autoplay
+        data-shaka-player
+        id="video"
+        style="width: 100%; height: 100%; background-color: black;"
+        poster="Cric stream Thumbnail.jpg"
+      ></video>
+      <div id="live-label">
+        <center>
+          <a href="https://t.me/cric_stream">CRIC <br />STREAM</a>
+        </center>
+      </div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const videoUrl = "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8";
-            const videoElement = document.getElementById("player");
+      async function init() {
+        // Default URL or URL from query params
+        const defaultUrl =
+          "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8";
+        const urlParams = new URLSearchParams(window.location.search);
+        const manifestUri = urlParams.get("url") || defaultUrl;
 
-            if (Hls.isSupported()) {
-                const hls = new Hls({ debug: true });
+        console.log("Attempting to load URL:", manifestUri);
 
-                // Optional: Add custom headers or handle tokens
-                hls.loadSource(videoUrl);
-                hls.attachMedia(videoElement);
+        const video = document.getElementById("video");
+        const ui = video["ui"];
+        const controls = ui.getControls();
+        const player = controls.getPlayer();
 
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    const player = new Plyr(videoElement, {
-                        controls: [
-                            'play-large',
-                            'play',
-                            'progress',
-                            'current-time',
-                            'mute',
-                            'volume',
-                            'settings',
-                            'fullscreen'
-                        ]
-                    });
+        // Shaka Player UI configuration
+        const config = {
+          controlPanelElements: [
+            "play_pause",
+            "spacer",
+            "mute",
+            "volume",
+            "quality",
+            "fullscreen",
+          ],
+        };
 
-                    console.log("HLS manifest loaded successfully");
-                });
+        ui.configure(config);
 
-                hls.on(Hls.Events.ERROR, (event, data) => {
-                    console.error("HLS.js error:", data);
-                });
-            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
-                // Native HLS support (e.g., Safari)
-                videoElement.src = videoUrl;
-
-                new Plyr(videoElement, {
-                    controls: [
-                        'play-large',
-                        'play',
-                        'progress',
-                        'current-time',
-                        'mute',
-                        'volume',
-                        'settings',
-                        'fullscreen'
-                    ]
-                });
-
-                console.log("Native HLS supported and playing");
-            } else {
-                console.error("HLS is not supported in this browser");
-            }
+        // Player configuration for HLS
+        player.configure({
+          streaming: {
+            useNativeHlsOnSafari: false, // Disable native HLS handling for Safari
+            bufferingGoal: 30, // Buffering in seconds
+          },
+          abr: {
+            enabled: true, // Adaptive Bitrate (ABR) enabled
+            restrictions: {
+              minBandwidth: 0,
+              maxBandwidth: Infinity,
+            },
+          },
         });
+
+        player.addEventListener("error", (errorEvent) => {
+          console.error("Player Error:", errorEvent.detail);
+          alert(
+            "An error occurred while playing the video. Check the console for details."
+          );
+        });
+
+        try {
+          await player.load(manifestUri); // Load the HLS manifest
+          console.log("The video has now been loaded!");
+          document.getElementById("live-label").style.display = "block"; // Show the label
+        } catch (error) {
+          console.error("Error loading video:", error);
+          alert(
+            "Failed to load the video. Ensure the link is correct and accessible."
+          );
+        }
+      }
+
+      document.addEventListener("shaka-ui-loaded", init);
+      document.addEventListener("shaka-ui-load-failed", () => {
+        console.error("Shaka Player UI library failed to load.");
+      });
     </script>
-</body>
+  </body>
 </html>
