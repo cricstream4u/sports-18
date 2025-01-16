@@ -1,74 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Video Player - TG @cric_stream</title>
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-  <style>
-    body {
-      margin: 0;
-      background-color: black;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    video {
-      width: 100%;
-      max-width: 800px;
-      height: auto;
-      background-color: black;
-    }
-    #error-message {
-      color: white;
-      text-align: center;
-      font-size: 1.2rem;
-      margin-top: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
+    <title>TG- @cric_stream</title>
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        .video-container {
+            width: 100%;
+            background-color: white;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+        }
+
+        .content {
+            padding: 0;
+            background-color: white;
+        }
+
+        #joinTelegramButton {
+            background-color: #fff;
+            color: #0074d9;
+            border: 2px solid #0074d9;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        #joinTelegramButton:hover {
+            background-color: #0074d9;
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
-  <div>
-    <video id="video" controls autoplay></video>
-    <div id="error-message" style="display: none;">Failed to load the video. Please check the stream URL or try again later.</div>
-  </div>
-  
-  <script>
-    (function () {
-      const video = document.getElementById('video');
-      const errorMessage = document.getElementById('error-message');
-      const streamUrl = "https://dai.fancode.com/primary/115957_english_hls_5625ta-di/index.m3u8"; // Replace with your stream URL
+    <div class="video-container">
+        <video preload="none" id="video" autoplay controls crossorigin poster="CRIC stream Thumbnail .jpg"></video>
+    </div>
 
-      if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(streamUrl);
-        hls.attachMedia(video);
+    <div class="content">
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const videoUrl = urlParams.get('video');
 
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          console.log('Stream loaded successfully.');
-        });
+                if (!videoUrl) {
+                    document.body.innerHTML = "<h2>Video URL missing in query parameter</h2>";
+                    return;
+                }
 
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('HLS.js Error:', data);
-          if (data.fatal) {
-            errorMessage.style.display = 'block';
-          }
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = streamUrl;
-        video.addEventListener('loadedmetadata', () => {
-          console.log('Stream loaded using native HLS.');
-        });
-        video.addEventListener('error', () => {
-          console.error('Native HLS playback error.');
-          errorMessage.style.display = 'block';
-        });
-      } else {
-        errorMessage.style.display = 'block';
-        errorMessage.textContent = 'Your browser does not support HLS playback.';
-      }
-    })();
-  </script>
+                const video = document.getElementById('video');
+                const defaultOptions = {
+                    controls: [
+                        'play-large',
+                        'play',
+                        'progress',
+                        'duration',
+                        'mute',
+                        'settings',
+                        'fullscreen',
+                    ],
+                    settings: ['quality'],
+                };
+
+                const errorMessageTimeout = setTimeout(() => {
+                    document.body.innerHTML = "<h2>There was an issue loading the stream. Please try again later.</h2>";
+                }, 60000);
+
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.attachMedia(video);
+
+                    hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+                        hls.loadSource(videoUrl);
+                    });
+
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        const availableQualities = hls.levels.map(level => level.height);
+
+                        defaultOptions.quality = {
+                            default: 0,
+                            options: availableQualities,
+                            forced: true,
+                            onChange: (newQuality) => updateQuality(hls, newQuality),
+                        };
+
+                        new Plyr(video, defaultOptions);
+                        clearTimeout(errorMessageTimeout);
+                    });
+
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        console.error('HLS.js Error:', data);
+                        if (data.fatal) {
+                            document.body.innerHTML = `<h2>Stream loading error: ${data.details}</h2>`;
+                        }
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = videoUrl;
+                    new Plyr(video, defaultOptions);
+                    video.onplaying = () => clearTimeout(errorMessageTimeout);
+                } else {
+                    document.body.innerHTML = "<h2>HLS not supported on your browser</h2>";
+                }
+            });
+
+            function updateQuality(hls, newQuality) {
+                if (newQuality === 0) {
+                    hls.currentLevel = -1; // Auto
+                } else {
+                    hls.levels.forEach((level, index) => {
+                        if (level.height === newQuality) {
+                            hls.currentLevel = index;
+                        }
+                    });
+                }
+            }
+        </script>
+
+        <center>
+            <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
+            <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
+            <br>
+            <noscript><a href="https://www.supercounters.com/"></a></noscript>
+        </center>
+
+        <div style="background-color: #0074d9; text-align: center; padding: 10px;">
+            <a href="https://t.me/cric_stream" target="_blank">
+                <button id="joinTelegramButton">Join Telegram</button>
+            </a>
+        </div>
+    </div>
 </body>
 </html>
