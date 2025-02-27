@@ -118,7 +118,7 @@
 
     <script>
       async function init() {
-        const defaultUrl = "https://cors-anywhere.ammoapps.com/https://dfwlive-v1-c1p3-sponsored.akamaized.net/Content/HLS.cps/Live/channel(WILLHD-3291.dfw.1080)/index.m3u8";
+        const defaultUrl = "";
         const urlParams = new URLSearchParams(window.location.search);
         const manifestUri = urlParams.get('url') || defaultUrl;
 
@@ -143,7 +143,7 @@
 
         player.addEventListener('error', (errorEvent) => {
           console.error("Player Error:", errorEvent.detail);
-          alert("An error occurred while playing the video. Check the console for details.");
+          
         });
 
         try {
@@ -152,7 +152,7 @@
           document.getElementById('live-label').style.display = 'block';
         } catch (error) {
           console.error("Error loading video:", error);
-          alert("Failed to load the video. Please check the URL or CORS proxy.");
+          
         }
       }
 
