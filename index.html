@@ -1,182 +1,107 @@
 <!DOCTYPE html>
-<html>
-  <head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TG @cric_stream</title>
-    <link rel="shortcut icon" type="image/x-icon" href="Cric stream Favicon.jpg">
-    <!-- Shaka Player UI compiled library -->
-    <script src="shaka-player.ui.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="controls.min.css">
+    <title>Sports18 1 HD</title>
+    <link rel="shortcut icon" href="https://live.drmlive.in/Player.png" />
     <style>
-      #live-label {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        font-size: 10px;
-        color: white;
-        background-color: rgba(0, 0, 0, 0.4);
-        padding: 4px 8px;
-        border-radius: 5px;
-        display: none;
-        z-index: 10;
-      }
-
-      #live-label a {
-        color: white;
-        text-decoration: none;
-        font-weight: bold;
-      }
-
-       /* For screens larger than 768px (laptops, desktops) */
-      @media (min-width: 768px) {
-        #live-label {
-          font-size: 8px;
-          padding: 5px 10px;
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
         }
-      }
-
-      /* For smaller screens (mobiles) */
-      @media (max-width: 767px) {
-        #live-label {
-          font-size: 5px;
-          padding: 2px 4px;
-          top: 5px;
-          left: 5px;
+        #player {
+            position: absolute;
+            width: 100% !important;
+            height: 100% !important;
         }
-      }
-
-       /* Popup styles */
-        .popup {
+        .telegram-toggle {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #1c1c1c;
-            border-radius: 20px; /* Rounded card style */
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.2);
-            z-index: 1002;
-            width: 90%;
-            max-width: 400px;
-            animation: fadeIn 0.5s;
-        }
-
-        .popup h2 {
-            color: #ffcc00;
-            margin-bottom: 10px;
-            font-size: 20px;
-        }
-
-        .popup p {
-            margin-bottom: 20px;
-            color: #ccc;
-            font-size: 16px;
-        }
-
-        .popup button {
+            top: 10px;
+            right: 10px;
             background-color: #0088cc;
             color: #fff;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            margin-bottom: 10px;
-            width: 100%;
+            padding: 10px 15px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
         }
-
-        .popup button:hover {
-            background-color: #006699;
-        }
-
-        .popup .close-btn {
-            background-color: #555;
-        }
-
-        .popup .close-btn:hover {
-            background-color: #333;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+        .telegram-toggle img {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
         }
     </style>
-  </head>
-  <body>
-    <div data-shaka-player-container style="max-width:100%">
-      <video autoplay data-shaka-player id="video" style="width:100%;height:100%; background-color:black;" poster=""></video>
-      <div id="live-label">
-        <center><a href="https://t.me/cric_stream">CRIC <br> STREAM</a></center>
-      </div>
-    </div>
+</head>
+<body>
+<a href="https://t.me/+_RiCu2cz5TkxZmU1" class="telegram-toggle">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram">
+    Join Telegram
+</a>
+<div id="player"></div>
 
-    <script>
-      async function init() {
-        const defaultUrl = "https://jcevents.jiocinema.com/bpk-tv/JC_Sports18_1HD/JCHLS/hdntl=exp=1740731811~acl=%2f*~id=734d91efa9480a411197166084224a1d~data=hdntl~hmac=59c116cca1d5b4cb01a37d2c6243831af69b1275cc46d9cbc4f40a88f246857a/index.m3u8";
-        const urlParams = new URLSearchParams(window.location.search);
-        const manifestUri = urlParams.get('url') || defaultUrl;
+<script src="//ssl.p.jwpcdn.com/player/v/8.25.1/jwplayer.js"></script>
+<script>
+    jwplayer.key = 'XSuP4qMl+9tK17QNb+4+th2Pm9AWgMO/cYH8CI0HGGr7bdjo';
 
-        console.log("Attempting to load URL:", manifestUri);
+    function setCookie(name, value) {
+        document.cookie = name + "=" + value + "; path=/";
+    }
 
-        const video = document.getElementById('video');
-        const ui = video['ui'];
-        const controls = ui.getControls();
-        const player = controls.getPlayer();
+    function extractTokenFromLink(link) {
+        var tokenMatch = link.match(/__hdnea__=([^&]+)/);
+        return tokenMatch ? tokenMatch[1] : '';
+    }
 
-        const config = {
-          controlPanelElements: ['play_pause', 'spacer', 'mute', 'quality', 'picture_in_picture', 'fullscreen'],
+    function interceptNetworkRequests(token) {
+        const originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+            if (url.startsWith('https://tv.media.jio.com/')) {
+                url = url.replace('tv.media.jio.com', 'jio.drmlive.au/jio');
+            }
+
+            if ((url.includes('.dash') || url.includes('.m3u8') || url.includes('.ts')) && token && !url.includes('__hdnea=')) {
+                url += (url.includes('?') ? '&' : '?') + '__hdnea=' + token;
+            }
+
+            originalOpen.apply(this, arguments);
         };
+    }
 
-        ui.configure(config);
+    function playVideo() {
+        var link = "https://jiotvmblive.cdn.jio.com/bpk-tv/Sports181_HD_MOB/Fallback/index.m3u8?__hdnea=st=1741005947~exp=1741092347~acl=/*~hmac=5a341c13d65f72234774fc6cbab4bb64bf9ca9ab203f1afccd1b48f4440d0e0c";
+        var tokenValue = extractTokenFromLink(link);
 
-        player.configure({
-          streaming: {
-            useNativeHlsOnSafari: false,
-          },
-        });
-
-        player.addEventListener('error', (errorEvent) => {
-          console.error("Player Error:", errorEvent.detail);
-          
-        });
-
-        try {
-          await player.load(manifestUri);
-          console.log("The video has now been loaded!");
-          document.getElementById('live-label').style.display = 'block';
-        } catch (error) {
-          console.error("Error loading video:", error);
-          
+        if (tokenValue) {
+            setCookie("__hdnea__", tokenValue);
+            interceptNetworkRequests(tokenValue);
         }
-      }
 
-      document.addEventListener('shaka-ui-loaded', init);
-      document.addEventListener('shaka-ui-load-failed', () => {
-        console.error("Shaka Player UI library failed to load.");
-      });
-    </script>
+        var playerInstance = jwplayer("player");
+        playerInstance.setup({
+            playlist: [{
+                file: link,
+                type: "hls"
+            }],
+            width: "100%",
+            aspectratio: "16:9",
+            autostart: true,
+            cast: {
+                appid: 'CC1AD845'
+            }
+        });
 
-    
-    
-    <center>
-            <script type="text/javascript" src="//widget.supercounters.com/ssl/online_t.js"></script>
-            <script type="text/javascript">sc_online_t(1703448, "Watching....", "#1d1d21");</script>
-            <br>
-            <noscript><a href="https://www.supercounters.com/"></a></noscript>
-        </center>
+        playerInstance.on('beforePlay', function() {
+            interceptNetworkRequests(tokenValue);
+        });
+    }
 
-        <div style="background-color: #0074d9; text-align: center; padding: 10px;">
-            <a href="https://t.me/cric_stream" target="_blank">
-                <button id="joinTelegramButton">Join Telegram</button>
-            </a>
-        </div>
-    </div>
-    
-  </body>
+    window.onload = playVideo;
+</script>
+</body>
 </html>
